@@ -38,6 +38,11 @@ namespace istio {
 namespace control {
 namespace {
 
+void toGoString(const std::string& str, GoString* out) {
+    out->n = str.length();
+    out->p = str.c_str();
+}
+
 CheckOptions GetJustCheckOptions(const TransportConfig& config) {
   if (config.disable_check_cache()) {
     return CheckOptions(0);
@@ -83,20 +88,20 @@ ClientContextBase::ClientContextBase(const TransportConfig& config,
   ::dlerror();  // clear errors
   auto mod = ::dlopen("/tmp/libmixc.so", RTLD_NOW);
   if (!mod) {
-    GOOGLE_LOG(WARN) << "Unable to open libmixc.so" << dlerror();
+    GOOGLE_LOG(ERROR) << "Unable to open libmixc.so" << dlerror();
     return;
   }
 
-  auto initModule = ::dlsym(mod, "InitModule")
+  auto initModule = InitFunc(::dlsym(mod, "InitModule"));
   if (!initModule) {
-    GOOGLE_LOG(WARN) << "Unable to get InitModule" << dlerror();
+    GOOGLE_LOG(ERROR) << "Unable to get InitModule" << dlerror();
     return;
   }
   initModule();
 
-  reportFunc_ = ReportFunc(::dlsym(mod, "Report"))
+  reportFunc_ = ReportFunc(::dlsym(mod, "Report"));
   if (!initModule) {
-    GOOGLE_LOG(WARN) << "Unable to get InitModule" << dlerror();
+    GOOGLE_LOG(ERROR) << "Unable to get InitModule" << dlerror();
     return;
   }
 }
@@ -132,7 +137,7 @@ void ClientContextBase::SendReport(const RequestContext& request) {
   if (reportFunc_ != NULL) {
     GoString gs;
     auto sa = request.attributes->SerializeAsString();
-    toGoString (sa, &gs)
+    toGoString (sa, &gs);
     reportFunc_(gs);
   } else {
     mixer_client_->Report(*request.attributes);

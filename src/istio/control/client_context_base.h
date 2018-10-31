@@ -25,11 +25,7 @@
 #include "libmixc.h"
 
 typedef GoUint8 (*ReportFunc)(GoString p0);
-
-void toGoString(const std::string& str, GoString* out) {
-    out->n = str.length();
-    out->p = str.c_str();
-}
+typedef void (*InitFunc)(void);
 
 namespace istio {
 namespace control {
