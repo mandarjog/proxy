@@ -79,6 +79,26 @@ ClientContextBase::ClientContextBase(const TransportConfig& config,
   options.env = env;
   mixer_client_ = ::istio::mixerclient::CreateMixerClient(options);
   CreateLocalAttributes(local_node, &local_attributes_);
+
+  ::dlerror();  // clear errors
+  auto mod = ::dlopen("/tmp/libmixc.so", RTLD_NOW);
+  if (!mod) {
+    GOOGLE_LOG(WARN) << "Unable to open libmixc.so" << dlerror();
+    return;
+  }
+
+  auto initModule = ::dlsym(mod, "InitModule")
+  if (!initModule) {
+    GOOGLE_LOG(WARN) << "Unable to get InitModule" << dlerror();
+    return;
+  }
+  initModule();
+
+  reportFunc_ = ReportFunc(::dlsym(mod, "Report"))
+  if (!initModule) {
+    GOOGLE_LOG(WARN) << "Unable to get InitModule" << dlerror();
+    return;
+  }
 }
 
 CancelFunc ClientContextBase::SendCheck(TransportCheckFunc transport,
@@ -109,7 +129,14 @@ void ClientContextBase::SendReport(const RequestContext& request) {
   // TODO: add debug message
   // GOOGLE_LOG(INFO) << "Report attributes: " <<
   // request.attributes->DebugString();
-  mixer_client_->Report(*request.attributes);
+  if (reportFunc_ != NULL) {
+    GoString gs;
+    auto sa = request.attributes->SerializeAsString();
+    toGoString (sa, &gs)
+    reportFunc_(gs);
+  } else {
+    mixer_client_->Report(*request.attributes);
+  }
 }
 
 void ClientContextBase::GetStatistics(Statistics* stat) const {
@@ -128,7 +155,7 @@ void ClientContextBase::AddLocalNodeAttributes(
 void ClientContextBase::AddLocalNodeForwardAttribues(
     ::istio::mixer::v1::Attributes* request) const {
   if (outbound_) {
-    request->MergeFrom(local_attributes_.forward);
+   request->MergeFrom(local_attributes_.forward);
   }
 }
 }  // namespace control

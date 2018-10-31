@@ -22,6 +22,7 @@ cc_library(
     hdrs = [
         "client_context_base.h",
         "request_context.h",
+        "libmixc.h",
     ],
     visibility = [":__subpackages__"],
     deps = [

@@ -21,6 +21,15 @@
 #include "include/istio/utils/local_attributes.h"
 #include "mixer/v1/config/client/client_config.pb.h"
 #include "request_context.h"
+#include <dlfcn.h>
+#include "libmixc.h"
+
+typedef GoUint8 (*ReportFunc)(GoString p0);
+
+void toGoString(const std::string& str, GoString* out) {
+    out->n = str.length();
+    out->p = str.c_str();
+}
 
 namespace istio {
 namespace control {
@@ -69,6 +78,9 @@ class ClientContextBase {
 
   // local attributes - owned by the client context.
   ::istio::utils::LocalAttributes local_attributes_;
+
+  // dynamically loaded report function
+  ReportFunc reportFunc_;
 };
 
 }  // namespace control
