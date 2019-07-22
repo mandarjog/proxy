@@ -30,10 +30,17 @@ using Common::Wasm::Null::Plugin::getResponseHeader;
 using Common::Wasm::Null::Plugin::logDebug;
 using Common::Wasm::Null::Plugin::logInfo;
 using Common::Wasm::Null::Plugin::proxy_setMetadataStruct;
+using Common::Wasm::Null::Plugin::setMetadata;
 using Common::Wasm::Null::Plugin::removeRequestHeader;
 using Common::Wasm::Null::Plugin::removeResponseHeader;
 using Common::Wasm::Null::Plugin::replaceRequestHeader;
 using Common::Wasm::Null::Plugin::replaceResponseHeader;
+
+using google::protobuf::util::MessageToJsonString;
+using google::protobuf::util::JsonStringToMessage;
+
+
+
 
 void PluginRootContext::onConfigure(
     std::unique_ptr<WasmData> ABSL_ATTRIBUTE_UNUSED configuration) {
@@ -43,9 +50,14 @@ void PluginRootContext::onConfigure(
     std::string metadata_bytes;
     google::protobuf::io::StringOutputStream md(&metadata_bytes);
     google::protobuf::io::CodedOutputStream mcs(&md);
-
     mcs.SetSerializationDeterministic(true);
-    metadata.struct_value().SerializeToCodedStream(&mcs);
+
+    wasm::metadataexchange::Metadata meta;
+    extractNodeMetadata(metadata.struct_value(), &meta);
+    meta.SerializeToCodedStream(&mcs);
+
+    // TODO (mjog) perhaps serialize as 'any' so free form data can be sent.
+    //metadata.struct_value().SerializeToCodedStream(&mcs);
 
     metadata_value_ =
         Base64::encode(metadata_bytes.data(), metadata_bytes.size());
@@ -79,8 +91,9 @@ std::string PluginContext::metadata_value() {
 // TODO(mjog) move this to proxy_wasm_impl.h
 inline void setMetadataStruct(Common::Wasm::MetadataType type, StringView key,
                               StringView value) {
-  proxy_setMetadataStruct(type, key.data(), key.size(), value.data(),
-                          value.size());
+  setMetadata(type, key, value);
+  //proxy_setMetadataStruct(type, key.data(), key.size(), value.data(),
+  //value.size());
 }
 
 Http::FilterHeadersStatus PluginContext::onRequestHeaders() {

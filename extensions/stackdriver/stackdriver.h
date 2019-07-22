@@ -18,6 +18,7 @@
 #include "extensions/stackdriver/common/context.h"
 #include "extensions/stackdriver/config/stackdriver_plugin_config.pb.h"
 #include "opencensus/exporters/stats/stackdriver/stackdriver_exporter.h"
+#include "src/envoy/http/metadata_exchange/metadata.pb.h"
 
 #ifndef NULL_PLUGIN
 #include "api/wasm/cpp/proxy_wasm_intrinsics.h"

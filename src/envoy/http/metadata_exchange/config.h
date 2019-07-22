@@ -16,6 +16,7 @@
 #pragma once
 
 #include "extensions/common/wasm/null/null.h"
+#include "src/envoy/http/metadata_exchange/metadata.h"
 
 namespace Envoy {
 namespace Extensions {
