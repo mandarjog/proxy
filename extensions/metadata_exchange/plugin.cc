@@ -88,14 +88,10 @@ void PluginRootContext::updateMetadataValue() {
       Base64::encode(metadata_bytes.data(), metadata_bytes.size());
 }
 
-// onConfigure == false makes the proxy crash.
-// Only policy plugins should return false.
+// Metadata exchange has sane defaults and therefore it will be fully
+// functional even with configuration errors.
+// A configuration error thrown here will cause the proxy to crash.
 bool PluginRootContext::onConfigure(size_t size) {
-  initialized_ = configure(size);
-  return true;
-}
-
-bool PluginRootContext::configure(size_t) {
   updateMetadataValue();
   if (!getValue({"node", "id"}, &node_id_)) {
     logDebug("cannot get node ID");
@@ -104,19 +100,7 @@ bool PluginRootContext::configure(size_t) {
                         " node:", node_id_));
 
   // Parse configuration JSON string.
-  std::unique_ptr<WasmData> configuration = getConfiguration();
-  auto j = ::Wasm::Common::JsonParse(configuration->view());
-  if (!j.is_object()) {
-    logWarn(absl::StrCat("cannot parse plugin configuration JSON string: ",
-                         configuration->view(), j.dump()));
-    return false;
-  }
-
-  auto max_peer_cache_size =
-      ::Wasm::Common::JsonGetField<int64_t>(j, "max_peer_cache_size");
-  if (max_peer_cache_size.has_value()) {
-    max_peer_cache_size_ = max_peer_cache_size.value();
-  }
+  configure(size);
 
   // Declare filter state property type.
   const std::string function = "declare_property";
@@ -136,6 +120,24 @@ bool PluginRootContext::configure(size_t) {
   proxy_call_foreign_function(function.data(), function.size(), in.data(),
                               in.size(), nullptr, nullptr);
 
+  return true;
+}
+
+bool PluginRootContext::configure(size_t) {
+  // Parse configuration JSON string.
+  std::unique_ptr<WasmData> configuration = getConfiguration();
+  auto j = ::Wasm::Common::JsonParse(configuration->view());
+  if (!j.is_object()) {
+    logWarn(absl::StrCat("cannot parse plugin configuration JSON string: ",
+                         configuration->view(), j.dump()));
+    return false;
+  }
+
+  auto max_peer_cache_size =
+      ::Wasm::Common::JsonGetField<int64_t>(j, "max_peer_cache_size");
+  if (max_peer_cache_size.has_value()) {
+    max_peer_cache_size_ = max_peer_cache_size.value();
+  }
   return true;
 }
 
@@ -178,9 +180,6 @@ bool PluginRootContext::updatePeer(StringView key, StringView peer_id,
 }
 
 FilterHeadersStatus PluginContext::onRequestHeaders(uint32_t) {
-  if (!rootContext()->initialized()) {
-    return FilterHeadersStatus::Continue;
-  }
   // strip and store downstream peer metadata
   auto downstream_metadata_id = getRequestHeader(ExchangeMetadataHeaderId);
   if (downstream_metadata_id != nullptr &&
@@ -224,9 +223,6 @@ FilterHeadersStatus PluginContext::onRequestHeaders(uint32_t) {
 }
 
 FilterHeadersStatus PluginContext::onResponseHeaders(uint32_t) {
-  if (!rootContext()->initialized()) {
-    return FilterHeadersStatus::Continue;
-  }
   // strip and store upstream peer metadata
   auto upstream_metadata_id = getResponseHeader(ExchangeMetadataHeaderId);
   if (upstream_metadata_id != nullptr &&
