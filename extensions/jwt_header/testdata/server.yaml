@@ -84,23 +84,12 @@ static_resources:
               value:
                 config:
                   vm_config:
-                          #runtime: envoy.wasm.runtime.v8
-                    runtime: envoy.wasm.runtime.null
+                    runtime: envoy.wasm.runtime.v8
+                    #runtime: envoy.wasm.runtime.null
                     code:
                       local:
-                        inline_string: "envoy.wasm.jwt_header"
-                        #filename: /home/mjog/work/proxy/extensions/jwt_header/plugin.wasm
-                      #  filename: /Volumes/work/go/src/istio.io/proxy15/extensions/jwt_header/jwt_header_plugin_15.wasm
-#                      remote1:
-#                        sha256: 497302bb0de35537b066118bd9bfcd893fe46f04b32005a114ea0d2fc3683fab 
-#                        http_uri:
-#                          uri: http://storage.googleapis.com/artifacts.mixologist-142215.appspot.com/extensions/jwt_header_plugin_15.wasm
-#                          #uri: https://github.com/istio/proxy/raw/release-1.5/extensions/stats/plugin.wasm
-#                          #uri: https://github.com/istio/proxy/blob/release-1.5/extensions/stats/plugin.wasm?raw=true
-#                          cluster: googleapis_storage
-#                          #cluster: com_github
-#                          timeout:
-#                            seconds: 5
+                        #inline_string: "envoy.wasm.jwt_header"
+                        filename: extensions/jwt_header/plugin.wasm
                   configuration:
                     '@type': type.googleapis.com/google.protobuf.StringValue
                     value: |
@@ -161,24 +150,6 @@ static_resources:
           http_filters:
           - name: envoy.filters.http.router
   clusters:
-#  - name: com_github
-#    dns_lookup_family: V4_ONLY
-#    connect_timeout: 0.25s
-#    type: STRICT_DNS
-#    lb_policy: round_robin
-#    hosts:
-#    - socket_address:
-#        address: github.com
-#        port_value: 443
-#  - name: googleapis_storage
-#    dns_lookup_family: V4_ONLY
-#    connect_timeout: 0.25s
-#    type: STRICT_DNS
-#    lb_policy: round_robin
-#    hosts:
-#    - socket_address:
-#        address: storage.googleapis.com
-#        port_value: 80
   - name: service_PROD
     connect_timeout: 0.25s
     type: static

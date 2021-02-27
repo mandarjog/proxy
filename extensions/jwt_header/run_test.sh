@@ -14,8 +14,10 @@
 
 WD=$(dirname $0)
 WD=$(cd $WD; pwd)
+TOPDIR=$(cd ${WD}/../..; pwd)
+cd ${TOPDIR}
 
-BAZEL_BIN="${WD}/../../bazel-bin"
+BAZEL_BIN="${TOPDIR}/bazel-bin"
 
 set -ex
 pwd

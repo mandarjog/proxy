@@ -35,7 +35,6 @@ namespace Plugin {
 PROXY_WASM_NULL_PLUGIN_REGISTRY;
 
 
-//using proxy_wasm::null_plugin::clearRouteCache;
 #endif  // NULL_PLUGIN
 
 using google::protobuf::util::JsonParseOptions;
@@ -44,9 +43,8 @@ using google::protobuf::util::Status;
 static RegisterContextFactory register_JwtHeader(
     CONTEXT_FACTORY(PluginContext), ROOT_FACTORY(PluginRootContext));
 
-bool PluginRootContext::onConfigure(size_t configuration_size) {
-  auto configuration = getBufferBytes(WasmBufferType::PluginConfiguration,
-                                           0, configuration_size);
+bool PluginRootContext::onConfigure(size_t) {
+  auto configuration = getConfiguration();
 
   JsonParseOptions json_options;
   auto status =
@@ -60,7 +58,7 @@ bool PluginRootContext::onConfigure(size_t configuration_size) {
   return true;
 }
 
-FilterHeadersStatus PluginContext::onRequestHeaders(uint32_t, bool) {
+FilterHeadersStatus PluginContext::onRequestHeaders(uint32_t) {
   google::protobuf::Struct jwtPayloadStruct;
   JsonParseOptions json_options;
 
@@ -83,7 +81,7 @@ FilterHeadersStatus PluginContext::onRequestHeaders(uint32_t, bool) {
   }
 
 
-  auto jwt_entry = pairs[0].second;  // std::string_view
+  auto jwt_entry = pairs[0].second;
   char *wptr = static_cast<char *>(::malloc(jwt_entry.size()));
   jwt_entry.copy(wptr, jwt_entry.size());
   WasmData ws(wptr, jwt_entry.size());
