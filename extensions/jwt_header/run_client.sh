@@ -29,8 +29,6 @@ export TOKEN_PROD_ISS2="eyJhbGciOiJSUzI1NiIsImtpZCI6IkRIRmJwb0lVcXJZOHQyenBBMnFY
 echo "Attempting canary token"
 curl http://localhost:8081/201 -H "Authorization: Bearer $TOKEN_CANARY" -H "jwt-issuer: newissuer"
 
-exit 0
-
 echo "Attempting prod token"
 curl http://localhost:8081/201 -H "Authorization: Bearer $TOKEN_PROD" -H "jwt-issuer: newissuer"
 

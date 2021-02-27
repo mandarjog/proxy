@@ -89,81 +89,38 @@ FilterHeadersStatus PluginContext::onRequestHeaders(uint32_t, bool) {
   WasmData ws(wptr, jwt_entry.size());
   wptr = nullptr;
 
-  auto claims = ws.pairs();
-  // pairs[0].second 
-  for (const auto& p: claims) {
-     LOG_WARN(absl::StrCat("airs ", p.first, " ----> ", p.second));
-  } 
-
-  // jwt validation filter uses the jwt-auth dynamic metadata
-  // with issuer as the key in struct.
-  //if (!getMessageValue({"metadata", "filter_metadata", "envoy.filters.http.jwt_authn"},
-  if (!getMessageValue({"metadata", "filter_metadata"},
-                       &jwtPayloadStruct)) {
-    LOG_WARN("No jwt-auth metadata present");
-    return FilterHeadersStatus::Continue;
+  auto claim_pairs = ws.pairs();
+  std::unordered_map<std::string, std::string> claims(claim_pairs.begin(), claim_pairs.end());
+  for (const auto& claim: claims) {
+     LOG_DEBUG(absl::StrCat("claims: ", claim.first, " ----> ", claim.second));
   }
 
-  // Istio jwt filter adds exactly one entry to the map
-  // The 'issuer' is not relevant.
-  auto it = jwtPayloadStruct.fields().begin();
-
-  if (jwtPayloadStruct.fields().end() == it) {
-    LOG_WARN("Empty jwt metadata");
-    return FilterHeadersStatus::Continue;
-  }
-
-
-  google::protobuf::Struct jwtStruct;
-  std::string jsonJwt;
-
-  google::protobuf::util::MessageToJsonString(it->second.struct_value(), &jsonJwt);
-
-  //auto jwtStruct = it->second.struct_value();
-
+  const auto end_it = claims.end();
   
-  //auto jsonJwt = it->second.string_value();
-
-  auto status = JsonStringToMessage(jsonJwt, &jwtStruct, json_options);
-
-  if (status != Status::OK) {
-    LOG_WARN(absl::StrCat("Cannot parse JSON string ", jsonJwt));
-    return FilterHeadersStatus::Continue;
-  }
-   
-
-  bool modified_headers = false;
-  const auto end_it = jwtStruct.fields().end();
-
   for (const auto& mapping : rootContext()->config().header_map()) {
-    const auto claim_it = jwtStruct.fields().find(mapping.second);
+    const auto claim_it = claims.find(mapping.second);
     if (claim_it == end_it) {
       LOG_DEBUG(
-          absl::StrCat("Claim ", mapping.second, " missing from ", jsonJwt));
+          absl::StrCat("Claim ", mapping.second, " missing."));
 
       // Remove mapping request header if present so that it is not used to
       // decide routes.
       auto found = getRequestHeader(mapping.first);
       if (found) {
         removeRequestHeader(mapping.first);
-        modified_headers = true;
       }
       continue;
     }
 
-    if (WasmResult::Ok !=
-        replaceRequestHeader(mapping.first, claim_it->second.string_value())) {
+    const auto result = replaceRequestHeader(mapping.first, claim_it->second);
+
+    if (result != WasmResult::Ok) {
       LOG_WARN(absl::StrCat("Unable to set header ", mapping.first, " to ",
-                            claim_it->second.string_value()));
+                            claim_it->second));
     } else {
       LOG_DEBUG(absl::StrCat("SetHeader ", mapping.first, " = ",
-                             claim_it->second.string_value()));
-      modified_headers = true;
+                             claim_it->second));
     }
-  }
-
-  if (modified_headers) {
-    //clearRouteCache();
   }
 
   return FilterHeadersStatus::Continue;
