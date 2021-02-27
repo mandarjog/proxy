@@ -154,18 +154,28 @@ static_resources:
     connect_timeout: 0.25s
     type: static
     lb_policy: round_robin
-    hosts:
-    - socket_address:
-        address: 127.0.0.1
-        port_value: 8099
+    load_assignment:
+      cluster_name: service_PROD
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 8099
   - name: service_CANARY
     connect_timeout: 0.25s
     type: static
     lb_policy: round_robin
-    hosts:
-    - socket_address:
-        address: 127.0.0.1
-        port_value: 8100
+    load_assignment:
+      cluster_name: service_CANARY
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 8100
 admin:
   access_log_path: "/dev/null"
   address:
